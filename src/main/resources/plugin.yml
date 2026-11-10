@@ -1,0 +1,59 @@
+name: AdminUtil
+description: $description
+prefix: AdminUtil
+version: '${version}'
+
+main: dev.doyu.adminutil.AdminUtilPlugin
+api-version: '26.3'
+load: POSTWORLD
+
+authors: [ doyumin ]
+website: https://velog.io/@doyu/posts
+
+permissions:
+  adminutil.*:
+    description: Allows every AdminUtil feature
+    default: op
+    children:
+      adminutil.fly: true
+      adminutil.invulnerable: true
+      adminutil.nodamage: true
+      adminutil.unstarve: true
+      adminutil.pickup: true
+      adminutil.glass: true
+      adminutil.list: true
+      adminutil.tools: true
+      adminutil.knife: true
+      adminutil.shunpo: true
+      adminutil.lightning: true
+      adminutil.vanish: true
+      adminutil.inv: true
+      adminutil.ender: true
+  adminutil.fly:
+    default: op
+  adminutil.invulnerable:
+    default: op
+  adminutil.nodamage:
+    default: op
+  adminutil.unstarve:
+    default: op
+  adminutil.pickup:
+    default: op
+  adminutil.glass:
+    default: op
+  adminutil.list:
+    default: op
+  adminutil.tools:
+    default: op
+  adminutil.knife:
+    default: op
+  adminutil.shunpo:
+    default: op
+  adminutil.lightning:
+    default: op
+  adminutil.vanish:
+    default: op
+  adminutil.inv:
+    default: op
+  adminutil.ender:
+    default: op
