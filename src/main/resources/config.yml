@@ -1,0 +1,6 @@
+# AdminUtil 설정. 바꾼 뒤에는 서버를 재시작해야 반영된다.
+
+vanish:
+  # 투명화·해제할 때 다른 사람에게 알리는 기본 방식. 관리자마다 /vanish notice 로 바꿀 수 있다.
+  # fake: 가짜 퇴장·입장 메시지, announce: "[Vanish] 누구 투명화" 공지, silent: 본인에게만
+  default-notice: fake
