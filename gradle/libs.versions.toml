@@ -1,5 +1,6 @@
 [versions]
 kotlin = "2.4.21"
+sshj = "0.41.2"
 
 paper-api = "26.3.build.+"
 minecraft = "26.3"
@@ -10,6 +11,7 @@ run-task = "3.1.0"
 [libraries]
 paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper-api" }
 kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib-jdk8", version.ref = "kotlin" }
+sshj = { module = "com.hierynomus:sshj", version.ref = "sshj" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

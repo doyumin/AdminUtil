@@ -28,6 +28,28 @@
 - 배포 태스크가 필요하면 접속 정보는 사용자의 `~/.gradle/gradle.properties`에서 읽는다(`val deployHost: String by project` 등). 비밀번호가 아니라 SSH 키 경로를 쓴다.
   - 이유: 옛 Utility의 빌드 스크립트에 서버 비밀번호가 평문으로 들어 있었다.
 
+## 배포 (`./gradlew deploy`)
+
+`deployUpload`(shadowJar → SFTP로 `plugins/`) → `deployRestart`(Pterodactyl Client API `power` = restart)를 묶은 것이 `deploy`다. 태스크 구현은 `buildSrc/src/main/kotlin/econet/deploy/`.
+
+- Econet 저장소의 배포 파이프라인과 같은 코드, 같은 설정 키(`econet.sftp.*`, `econet.panel.*`)를 쓴다. Econet·SMPUtil·AdminUtil이 같은 서버를 쓰므로 접속 정보 파일(`~/.gradle/gradle.properties`) 하나를 공유한다. 패키지가 `econet.deploy`인 것도 같은 이유다.
+  - 이유: 키 이름이 저장소마다 다르면 접속 정보를 저장소 수만큼 적어야 하고, 코드가 갈라지면 한쪽에서 고친 버그가 다른 쪽에 남는다. 서로의 코드를 의존하는 것은 아니다(복사해 온 코드다).
+- 접속 정보는 저장소에 두지 않는다. `~/.gradle/gradle.properties` 또는 환경 변수(`econet.sftp.host` → `ECONET_SFTP_HOST`)에서 읽고, 없으면 실행할 때 키 이름을 밝혀 실패한다. 위 "비밀 정보" 규칙은 그대로 적용된다.
+  - 이유: 비밀번호·API 키가 커밋되지 않게. 배포하지 않는 빌드는 설정 없이 돌아야 한다.
+- 인증은 SSH 키(`keyPath`) → 비밀번호 순서로 시도한다. 키를 권장하고, 비밀번호는 접속 정보 파일이나 환경 변수로만 받는 대체 수단이다.
+- SFTP 연산만 쓴다(sshj, 순수 Java). Pterodactyl은 셸·scp를 열어 주지 않는다.
+- 서버의 파일명은 `rootProject.name` 기준 버전 없는 `AdminUtil.jar`로 고정한다. 올리는 jar는 shadowJar(없으면 jar)다.
+  - 이유: 버전이 올라도 같은 이름을 덮어쓰면 되고, 버전이 다른 jar가 둘 남아 플러그인이 두 번 로드되는 일이 없다.
+- 순서: `AdminUtil.jar.uploading`으로 업로드 → 크기 확인 → 이 플러그인의 옛 파일만 삭제 → 최종 이름으로 rename.
+  - 이유: 업로드가 실패해도 돌아가던 jar가 남고, 임시 파일은 `.jar`로 끝나지 않아 서버가 반쯤 쓴 파일을 읽지 않는다.
+- 지우는 파일은 `AdminUtil.jar`, 옛 `AdminUtil-*.jar`, 이 이름의 `*.jar.uploading`뿐이다. 같은 폴더의 `Econet.jar`, `SMPUtil.jar` 같은 형제 플러그인 파일은 이름 접두사로 걸러 절대 지우지 않는다.
+  - 이유: 세 플러그인이 한 `plugins/` 폴더를 쓰므로, 삭제 규칙이 느슨하면 다른 플러그인을 날린다. `DeploySettingsTest`가 세 이름 모두로 이 규칙을 확인한다.
+- 서버 신원은 `~/.ssh/known_hosts` 또는 `econet.sftp.hostKey`(SHA256 지문)로 확인한다. 둘 다 없으면 서버 지문을 알려 주며 멈춘다. 패널 URL은 https만 허용한다(로컬 시험 서버 제외).
+  - 이유: 확인 없이 접속하면 가로챈 서버에 비밀번호를 넘길 수 있다.
+- **buildSrc 테스트는 `./gradlew build`에서 돌지 않는다.** 배포 코드를 고쳤다면 직접 돌린다: `./gradlew -p buildSrc test`.
+  - 이유: Gradle은 buildSrc를 컴파일만 하고 테스트는 실행하지 않는다(실제로 확인했다).
+- 실서버로의 실제 업로드는 사용자가 직접 한다. 작업 중에 접속 정보를 만들거나 서버에 접속하지 않는다.
+
 ## 작업 방식
 
 - `main`에 직접 푸시하지 않는다. 단계마다 브랜치를 만들고 PR로 올린다.
