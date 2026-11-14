@@ -29,6 +29,7 @@ permissions:
       adminutil.vanish: true
       adminutil.inv: true
       adminutil.ender: true
+      adminutil.chat: true
   adminutil.fly:
     default: op
   adminutil.invulnerable:
@@ -56,4 +57,6 @@ permissions:
   adminutil.inv:
     default: op
   adminutil.ender:
+    default: op
+  adminutil.chat:
     default: op
