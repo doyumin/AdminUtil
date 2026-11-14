@@ -1,5 +1,7 @@
 package dev.doyu.adminutil.command
 
+import dev.doyu.adminutil.chat.ChatFormat
+import dev.doyu.adminutil.chat.ChatFormatStore
 import dev.doyu.adminutil.inspect.InventoryInspector
 import dev.doyu.adminutil.item.AdminItem
 import dev.doyu.adminutil.item.AdminItems
@@ -28,6 +30,7 @@ class AdminCommand(
     private val vanish: Vanish,
     private val inspector: InventoryInspector,
     private val players: KnownPlayers,
+    private val chatFormats: ChatFormatStore,
     private val logger: Logger,
 ) : BasicCommand {
     override fun execute(source: CommandSourceStack, args: Array<String>) {
@@ -50,6 +53,7 @@ class AdminCommand(
             Subcommand.LIGHTNING -> lightning(sender)
             Subcommand.INV -> inspect(sender, args.getOrNull(1), subcommand, inspector::openInventory)
             Subcommand.ENDER -> inspect(sender, args.getOrNull(1), subcommand, inspector::openEnderChest)
+            Subcommand.CHAT -> chat(sender, args.drop(1))
         }
     }
 
@@ -62,6 +66,7 @@ class AdminCommand(
             subcommand == null || !sender.hasPermission(subcommand.permission) -> emptyList()
             args.size == 2 && (subcommand == Subcommand.INV || subcommand == Subcommand.ENDER) -> players.suggestions(sender, last)
             args.size == 2 && subcommand == Subcommand.TOOLS -> ToolTier.entries.map { it.id }.filter { it.startsWith(last, ignoreCase = true) }
+            args.size == 2 && subcommand == Subcommand.CHAT -> listOf("reset").filter { it.startsWith(last, ignoreCase = true) }
             args.size == 2 && subcommand == Subcommand.KNIFE -> listOf("players").filter { it.startsWith(last, ignoreCase = true) }
             args.size == 3 && subcommand == Subcommand.KNIFE -> listOf("on", "off").filter { it.startsWith(last, ignoreCase = true) }
             else -> emptyList()
@@ -142,6 +147,26 @@ class AdminCommand(
             return
         }
         player.sendMessage(adminMessage("${label}을(를) 회수하고 원래 아이템을 돌려놓았습니다.", NamedTextColor.YELLOW))
+    }
+
+    private fun chat(player: Player, words: List<String>) {
+        if (words.isEmpty()) {
+            player.sendMessage(adminMessage("채팅 서식: ${chatFormats.current.template}", NamedTextColor.YELLOW))
+            player.sendMessage(adminMessage("사용법: /ac chat <서식>|reset  (${ChatFormat.NICK} ${ChatFormat.NAME} ${ChatFormat.MSG}, &색코드)", NamedTextColor.GRAY))
+            return
+        }
+        if (words.singleOrNull().equals("reset", ignoreCase = true)) {
+            chatFormats.reset()
+            player.sendMessage(adminMessage("채팅 서식을 기본값(${ChatFormat.DEFAULT_TEMPLATE})으로 되돌렸습니다.", NamedTextColor.YELLOW))
+            return
+        }
+        val format = ChatFormat.parse(words.joinToString(" "))
+        if (format == null) {
+            player.sendMessage(adminMessage("서식에는 ${ChatFormat.MSG}가 있어야 합니다.", NamedTextColor.RED))
+            return
+        }
+        chatFormats.set(format)
+        player.sendMessage(adminMessage("채팅 서식을 바꿨습니다: ").append(format.render(player.name, player.name, Component.text("미리보기"))))
     }
 
     private fun inspect(player: Player, query: String?, subcommand: Subcommand, open: (Player, String) -> Unit) {
