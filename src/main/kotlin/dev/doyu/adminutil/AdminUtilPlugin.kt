@@ -13,6 +13,7 @@ import dev.doyu.adminutil.item.AdminItemGuard
 import dev.doyu.adminutil.item.AdminItems
 import dev.doyu.adminutil.item.KitDispenser
 import dev.doyu.adminutil.lookup.KnownPlayers
+import dev.doyu.adminutil.mode.InventorySwitcher
 import dev.doyu.adminutil.toggle.AdminToggles
 import dev.doyu.adminutil.toggle.GlassHelmet
 import dev.doyu.adminutil.toggle.ToggleStore
@@ -63,7 +64,7 @@ class AdminUtilPlugin : JavaPlugin() {
                 "ac",
                 "관리자 도구를 씁니다.",
                 listOf("admin", "관리"),
-                AdminCommand(toggles, items, dispenser, knife, vanish, inspector, players, chatFormats, logger),
+                AdminCommand(toggles, items, dispenser, knife, vanish, inspector, players, chatFormats, InventorySwitcher(dispenser, toggles), logger),
             )
             commands.register("vanish", "투명화를 켜고 끕니다.", listOf("v", "투명"), VanishCommand(vanish))
         }

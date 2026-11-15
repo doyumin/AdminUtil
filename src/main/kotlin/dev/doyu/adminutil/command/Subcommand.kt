@@ -18,6 +18,7 @@ enum class Subcommand(val id: String, val korean: String, val toggle: AdminToggl
     INV("inv", "인벤토리"),
     ENDER("ender", "엔더상자"),
     CHAT("chat", "채팅"),
+    MODE("mode", "모드"),
     ;
 
     val permission: String get() = "adminutil.$id"
