@@ -8,6 +8,9 @@ import dev.doyu.adminutil.item.AdminItems
 import dev.doyu.adminutil.item.KitDispenser
 import dev.doyu.adminutil.item.ToolTier
 import dev.doyu.adminutil.lookup.KnownPlayers
+import dev.doyu.adminutil.mode.InventoryMode
+import dev.doyu.adminutil.mode.InventorySwitcher
+import dev.doyu.adminutil.mode.SwitchResult
 import dev.doyu.adminutil.toggle.AdminToggle
 import dev.doyu.adminutil.toggle.AdminToggles
 import dev.doyu.adminutil.toy.RoseKnife
@@ -31,6 +34,7 @@ class AdminCommand(
     private val inspector: InventoryInspector,
     private val players: KnownPlayers,
     private val chatFormats: ChatFormatStore,
+    private val switcher: InventorySwitcher,
     private val logger: Logger,
 ) : BasicCommand {
     override fun execute(source: CommandSourceStack, args: Array<String>) {
@@ -54,6 +58,7 @@ class AdminCommand(
             Subcommand.INV -> inspect(sender, args.getOrNull(1), subcommand, inspector::openInventory)
             Subcommand.ENDER -> inspect(sender, args.getOrNull(1), subcommand, inspector::openEnderChest)
             Subcommand.CHAT -> chat(sender, args.drop(1))
+            Subcommand.MODE -> mode(sender, args.getOrNull(1))
         }
     }
 
@@ -66,6 +71,7 @@ class AdminCommand(
             subcommand == null || !sender.hasPermission(subcommand.permission) -> emptyList()
             args.size == 2 && (subcommand == Subcommand.INV || subcommand == Subcommand.ENDER) -> players.suggestions(sender, last)
             args.size == 2 && subcommand == Subcommand.TOOLS -> ToolTier.entries.map { it.id }.filter { it.startsWith(last, ignoreCase = true) }
+            args.size == 2 && subcommand == Subcommand.MODE -> InventoryMode.entries.map { it.id }.filter { it.startsWith(last, ignoreCase = true) }
             args.size == 2 && subcommand == Subcommand.CHAT -> listOf("reset").filter { it.startsWith(last, ignoreCase = true) }
             args.size == 2 && subcommand == Subcommand.KNIFE -> listOf("players").filter { it.startsWith(last, ignoreCase = true) }
             args.size == 3 && subcommand == Subcommand.KNIFE -> listOf("on", "off").filter { it.startsWith(last, ignoreCase = true) }
@@ -89,6 +95,7 @@ class AdminCommand(
         player.sendMessage(Component.text(" 관리자 도구: ").append(onOff(dispenser.isGiven(player, AdminItem.TOOLS))))
         player.sendMessage(Component.text(" 장미칼: ").append(onOff(dispenser.isGiven(player, AdminItem.KNIFE))).append(Component.text(" (플레이어 피해 ")).append(onOff(knife.hurtsPlayers(player))).append(Component.text(")")))
         player.sendMessage(Component.text(" 번개 막대: ").append(onOff(dispenser.isGiven(player, AdminItem.LIGHTNING))))
+        player.sendMessage(Component.text(" 인벤토리 모드: ${switcher.modeOf(player).label}"))
         player.sendMessage(Component.text(" 투명화: ").append(onOff(vanish.isVanished(player))))
     }
 
@@ -147,6 +154,26 @@ class AdminCommand(
             return
         }
         player.sendMessage(adminMessage("${label}을(를) 회수하고 원래 아이템을 돌려놓았습니다.", NamedTextColor.YELLOW))
+    }
+
+    private fun mode(player: Player, targetText: String?) {
+        val target = InventoryMode.parse(targetText)
+        if (targetText != null && target == null) {
+            player.sendMessage(adminMessage("사용법: /ac mode [${InventoryMode.entries.joinToString("|") { it.id }}]", NamedTextColor.GRAY))
+            return
+        }
+        when (val result = switcher.switch(player, target)) {
+            is SwitchResult.Switched -> {
+                val note = if (result.firstTime) " (처음이라 비어 있습니다)" else ""
+                player.sendMessage(adminMessage("${result.to.label}로 바꿨습니다.$note 다시 입력하면 돌아갑니다.", NamedTextColor.GREEN))
+            }
+            is SwitchResult.AlreadyIn -> player.sendMessage(adminMessage("이미 ${result.mode.label}입니다.", NamedTextColor.GRAY))
+            is SwitchResult.Blocked -> player.sendMessage(adminMessage("먼저 회수하세요: ${result.reasons.joinToString(", ")}", NamedTextColor.RED))
+            SwitchResult.Unreadable -> {
+                logger.severe("Could not switch the inventory of ${player.name}: stored inventory unreadable")
+                player.sendMessage(adminMessage("보관된 인벤토리를 읽지 못해 바꾸지 않았습니다. 서버 로그를 확인하세요.", NamedTextColor.RED))
+            }
+        }
     }
 
     private fun chat(player: Player, words: List<String>) {
