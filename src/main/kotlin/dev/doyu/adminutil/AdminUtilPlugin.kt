@@ -1,5 +1,7 @@
 package dev.doyu.adminutil
 
+import dev.doyu.adminutil.chat.ChatFormatStore
+import dev.doyu.adminutil.chat.ChatFormatter
 import dev.doyu.adminutil.command.AdminCommand
 import dev.doyu.adminutil.command.VanishCommand
 import dev.doyu.adminutil.config.readSettings
@@ -11,6 +13,7 @@ import dev.doyu.adminutil.item.AdminItemGuard
 import dev.doyu.adminutil.item.AdminItems
 import dev.doyu.adminutil.item.KitDispenser
 import dev.doyu.adminutil.lookup.KnownPlayers
+import dev.doyu.adminutil.mode.InventorySwitcher
 import dev.doyu.adminutil.toggle.AdminToggles
 import dev.doyu.adminutil.toggle.GlassHelmet
 import dev.doyu.adminutil.toggle.ToggleStore
@@ -36,6 +39,8 @@ class AdminUtilPlugin : JavaPlugin() {
         val players = KnownPlayers(server, files, logger)
         val inspector = InventoryInspector(server, players, OfflinePlayerItems(files, logger))
 
+        val chatFormats = ChatFormatStore(dataFolder.resolve("chat-format.yml"))
+
         val events = server.pluginManager
         events.registerEvents(toggles, this)
         events.registerEvents(AdminItemGuard(items), this)
@@ -44,6 +49,7 @@ class AdminUtilPlugin : JavaPlugin() {
         events.registerEvents(LightningRod(items), this)
         events.registerEvents(vanish, this)
         events.registerEvents(ReadOnlyGuard(), this)
+        events.registerEvents(ChatFormatter(chatFormats), this)
 
         // 서버 실행 중에 플러그인만 다시 켜진 경우, 이미 접속한 사람들에게 저장된 상태를 다시 적용한다.
         vanish.restoreOnline()
@@ -58,7 +64,7 @@ class AdminUtilPlugin : JavaPlugin() {
                 "ac",
                 "관리자 도구를 씁니다.",
                 listOf("admin", "관리"),
-                AdminCommand(toggles, items, dispenser, knife, vanish, inspector, players, logger),
+                AdminCommand(toggles, items, dispenser, knife, vanish, inspector, players, chatFormats, InventorySwitcher(dispenser, toggles), logger),
             )
             commands.register("vanish", "투명화를 켜고 끕니다.", listOf("v", "투명"), VanishCommand(vanish))
         }
